@@ -55,17 +55,6 @@ def convert_color_to_gray(src):
     return cv2.cvtColor(src, cv2.COLOR_RGBA2GRAY)
 
 
-def get_mat_from_image(image):
-    yuvMat = np.zeros((image.height + image.height // 2, image.width), np.uint8)
-    nv21 = np.frombuffer(
-        image.planes[0].buffer + image.planes[1].buffer + image.planes[2].buffer,
-        dtype=np.uint8,
-    )
-    yuvMat[: nv21.shape[0]] = nv21.reshape((yuvMat.shape[0], yuvMat.shape[1]))
-    rgbaMat = cv2.cvtColor(yuvMat, cv2.COLOR_YUV2RGBA_NV21, 4)
-    return rgbaMat
-
-
 def absdiff(src1, src2):
     return cv2.absdiff(src1, src2)
 
@@ -121,7 +110,6 @@ def extract_marker_area(frame, quad_markers):
 
 
 def detect_quad_markers(gray):
-    dictionary = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_50)
     corners, ids, _ = cv2.aruco.detectMarkers(gray, dictionary)
     print(corners, ids)
     markers = {}
