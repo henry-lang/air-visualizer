@@ -11,7 +11,7 @@ class State(Enum):
 
 
 class RecentViewports:
-    data: deque[10]
+    data: deque["Viewport"]
     size: int
 
     def __init__(self, size: int):
@@ -19,7 +19,6 @@ class RecentViewports:
         self.size = size
 
     def add(self, viewport: "Viewport"):
-        print(list(self.data))
         self.data.append(viewport)
         if len(self.data) > self.size:
             self.data.popleft()
@@ -52,9 +51,8 @@ class RecentViewports:
 
 
 num_frames = 0
-
 dictionary = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_50)
-recent_viewports = RecentViewports(5)
+recent_viewports = RecentViewports(10)
 
 
 class Marker:
@@ -131,6 +129,10 @@ def extract_viewport_area(frame, viewport):
     mat = cv2.getPerspectiveTransform(src, dest)
     result = cv2.warpPerspective(frame, mat, (width, height))
     return result
+
+
+def diff(a: cv2.Mat, b: cv2.Mat) -> cv2.Mat:
+    return cv2.absdiff(a, b)
 
 
 def main():
