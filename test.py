@@ -2,7 +2,6 @@ from typing import Optional
 import cv2
 import numpy as np
 from collections import deque
-
 from enum import Enum, auto
 
 
@@ -25,7 +24,16 @@ class RecentViewports:
         if len(self.data) > self.size:
             self.data.popleft()
 
+    def has_average(self) -> bool:
+        return len(self.data) > 0
+
     def average(self) -> "Viewport":
+        size = Marker(
+            (self.size, self.size),
+            (self.size, self.size),
+            (self.size, self.size),
+            (self.size, self.size),
+        )
         z = (0, 0)
         avg = Viewport(
             Marker(z, z, z, z),
@@ -35,10 +43,10 @@ class RecentViewports:
         )
 
         for v in self.data:
-            avg.tl += v.tl / self.size
-            avg.tr += v.tr / self.size
-            avg.br += v.br / self.size
-            avg.bl += v.bl / self.size
+            avg.tl += v.tl / size
+            avg.tr += v.tr / size
+            avg.br += v.br / size
+            avg.bl += v.bl / size
 
         return avg
 
@@ -71,12 +79,12 @@ class Marker:
             (self.bl[0] + o.bl[0], self.bl[1] + o.bl[1]),
         )
 
-    def __div__(self, factor: float) -> "Marker":
+    def __truediv__(self, factor: "Marker") -> "Marker":
         return Marker(
-            (self.tl[0] / factor, self.tl[1] / factor),
-            (self.tr[0] / factor, self.tr[1] / factor),
-            (self.br[0] / factor, self.br[1] / factor),
-            (self.bl[0] / factor, self.bl[1] / factor),
+            (self.tl[0] / factor.tl[0], self.tl[1] / factor.tl[1]),
+            (self.tr[0] / factor.tr[0], self.tr[1] / factor.tr[1]),
+            (self.br[0] / factor.br[0], self.br[1] / factor.br[1]),
+            (self.bl[0] / factor.bl[0], self.bl[1] / factor.bl[1]),
         )
 
 
@@ -154,8 +162,11 @@ def main():
             marker_area = extract_viewport_area(gray, viewport)
             cv2.imshow("frame", marker_area)
         else:
-            # Display the resulting frame
-            cv2.imshow("frame", gray)
+            if recent_viewports.has_average():
+                average = recent_viewports.average()
+                cv2.imshow("frame", extract_viewport_area(gray, average))
+            else:
+                cv2.imshow("frame", gray)
 
         if cv2.waitKey(1) == ord("q"):
             break
