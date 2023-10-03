@@ -6,6 +6,8 @@ from collections import deque
 from enum import Enum, auto
 from time import strftime
 
+dictionary = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_50)
+
 
 class RecentViewports:
     data: deque["Viewport"]
@@ -132,7 +134,6 @@ def main():
     images_path = f"out/{now}"
     os.makedirs(images_path, exist_ok=True)
     num_frames = 0
-    dictionary = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_50)
     recent_viewports = RecentViewports(10)
 
     print(f"Images Path: {images_path}")
