@@ -1,13 +1,10 @@
 from typing import Optional
 import cv2
 import numpy as np
+import os
 from collections import deque
 from enum import Enum, auto
-
-
-class State(Enum):
-    CAPTURING = auto()
-    ANALYZING = auto()
+from time import strftime
 
 
 class RecentViewports:
@@ -48,11 +45,6 @@ class RecentViewports:
             avg.bl += v.bl / size
 
         return avg
-
-
-num_frames = 0
-dictionary = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_50)
-recent_viewports = RecentViewports(10)
 
 
 class Marker:
@@ -136,7 +128,14 @@ def diff(a: cv2.Mat, b: cv2.Mat) -> cv2.Mat:
 
 
 def main():
-    global num_frames
+    now = strftime("%Y-%m-%HT%H:%M:%S")
+    images_path = f"out/{now}"
+    os.makedirs(images_path, exist_ok=True)
+    num_frames = 0
+    dictionary = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_50)
+    recent_viewports = RecentViewports(10)
+
+    print(f"Images Path: {images_path}")
 
     capture = cv2.VideoCapture(0)
     if not capture.isOpened():
