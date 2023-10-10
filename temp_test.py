@@ -1,11 +1,9 @@
+from collections import deque
+import os
+from time import strftime
 from typing import Optional
 import cv2
 import numpy as np
-import os
-from collections import deque
-from time import strftime
-
-dictionary = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_50)
 
 
 class RecentViewports:
@@ -107,6 +105,26 @@ def detect_viewport(gray) -> Optional[Viewport]:
     return Viewport(tl, tr, br, bl)
 
 
+def detect_viewport(gray) -> Optional[Viewport]:
+    corners, ids, _ = cv2.aruco.detectMarkers(gray, dictionary)
+    tl = tr = br = bl = None
+    if not ids is None:
+        for i in range(len(ids)):
+            id = ids[i][0]
+            marker = Marker.from_corners(corners[i])
+            if id == 0:
+                tl = marker
+            if id == 1:
+                tr = marker
+            if id == 2:
+                br = marker
+            if id == 3:
+                bl = marker
+    if tl is None or tr is None or br is None or bl is None:
+        return None
+    return Viewport(tl, tr, br, bl)
+
+
 def extract_viewport_area(frame, viewport):
     src = np.float32(
         [
@@ -124,61 +142,48 @@ def extract_viewport_area(frame, viewport):
     return result
 
 
-def diff(a: cv2.Mat, b: cv2.Mat) -> cv2.Mat:
-    return cv2.absdiff(a, b)
+dictionary = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_50)
+recent = RecentViewports(60)
+capture = cv2.VideoCapture(0)
+now = strftime("%Y-%m-%HT%H:%M:%S")
+images_path = f"out/{now}"
+os.makedirs(images_path, exist_ok=True)
+
+if not capture.isOpened():
+    print("Failed to open capture")
+    exit(1)
 
 
-def main():
-    now = strftime("%Y-%m-%HT%H:%M:%S")
-    images_path = f"out/{now}"
-    os.makedirs(images_path, exist_ok=True)
-    num_frames = 0
-    model: Optional[Viewport] = None
-    recent_viewports = RecentViewports(10)
-
-    print(f"Images Path: {images_path}")
-
-    capture = cv2.VideoCapture(0)
-    if not capture.isOpened():
-        print("Failed to initialize capture")
+def get_frame() -> cv2.Mat:
+    ret, frame = capture.read()
+    if not ret:
+        print("Failed to get frame")
         exit(1)
-
-    while True:
-        # Capture frame-by-frame
-        ret, frame = capture.read()
-        # print(f"Reading frame {num_frames}")
-        num_frames += 1
-
-        # if frame is read correctly ret is True
-        if not ret:
-            print("Can't receive frame (stream end?). Exiting ...")
-            break
-
-        # Our operations on the frame come here
-        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-
-        viewport = detect_viewport(gray)
-
-        if viewport:
-            recent_viewports.add(viewport)
-            marker_area = extract_viewport_area(gray, viewport)
-            model = marker_area
-            cv2.imshow("frame", marker_area)
-        else:
-            if recent_viewports.has_average():
-                average = recent_viewports.average()
-                cv2.imshow("frame", extract_viewport_area(gray, average))
-            else:
-                print("Skipping frame, could not find viewport area")
-                continue
-
-        if cv2.waitKey(1) == ord("q"):
-            break
-
-    # When everything done, release the capture
-    capture.release()
-    cv2.destroyAllWindows()
+    bw = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    return bw
 
 
-if __name__ == "__main__":
-    main()
+# Record a couple frames to warm up camera
+for _ in range(60):
+    frame = get_frame()
+    viewport = detect_viewport(frame)
+    if not viewport is None:
+        print("Found viewport, adding it to recents")
+        recent.add(viewport)
+
+if not recent.has_average():
+    print("Failed to determine viewport, make sure it is in view")
+    exit(1)
+
+average_viewport = recent.average()
+first = extract_viewport_area(get_frame(), average_viewport)
+num_frames = 0
+
+while True:
+    frame = extract_viewport_area(get_frame(), average_viewport)
+    diff = cv2.absdiff(frame, first)
+    diff = cv2.medianBlur(diff, 5)
+    diff = cv2.multiply(diff, 2)
+    cv2.imshow("Preview", frame)
+    cv2.imwrite(f"images_path/{num_frames}.png", diff)
+    num_frames += 1
