@@ -23,11 +23,12 @@ class RecentViewports:
         return len(self.data) > 0
 
     def average(self) -> "Viewport":
+        s = len(self.data)
         size = Marker(
-            (self.size, self.size),
-            (self.size, self.size),
-            (self.size, self.size),
-            (self.size, self.size),
+            (s, s),
+            (s, s),
+            (s, s),
+            (s, s),
         )
         z = (0, 0)
         avg = Viewport(
@@ -122,6 +123,7 @@ def detect_viewport(gray) -> Optional[Viewport]:
                 bl = marker
     if tl is None or tr is None or br is None or bl is None:
         return None
+
     return Viewport(tl, tr, br, bl)
 
 
@@ -145,7 +147,7 @@ def extract_viewport_area(frame, viewport):
 dictionary = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_50)
 recent = RecentViewports(60)
 capture = cv2.VideoCapture(0)
-now = strftime("%Y-%m-%HT%H:%M:%S")
+now = strftime("%Y-%m-%HT%H_%M_%S")
 images_path = f"out/{now}"
 os.makedirs(images_path, exist_ok=True)
 
@@ -164,8 +166,10 @@ def get_frame() -> cv2.Mat:
 
 
 # Record a couple frames to warm up camera
-for _ in range(60):
+for i in range(60):
     frame = get_frame()
+    if cv2.waitKey(1) == ord("q"):
+        break
     viewport = detect_viewport(frame)
     if not viewport is None:
         print("Found viewport, adding it to recents")
@@ -182,8 +186,6 @@ num_frames = 0
 while True:
     frame = extract_viewport_area(get_frame(), average_viewport)
     diff = cv2.absdiff(frame, first)
-    diff = cv2.medianBlur(diff, 5)
-    diff = cv2.multiply(diff, 2)
-    cv2.imshow("Preview", frame)
-    cv2.imwrite(f"images_path/{num_frames}.png", diff)
+    cv2.imshow("Preview", diff)
+    cv2.imwrite(f"{images_path}/{num_frames}.png", diff)
     num_frames += 1
