@@ -59,7 +59,7 @@ if webcam.isOpened():
         diffsub = cv.multiply(diffsub, gain)
         diffsub_color = cv.applyColorMap(diffsub, cv.COLORMAP_JET)
         cv.imshow("Image Difference", diffsub_color)
-        cv.imwrite(f"{images_path}\diffsub_" + str(num) + "_color.png", diffsub_color)
+        cv.imwrite(f"diffsub_" + str(num) + "_color.png", diffsub_color)
         key = cv.waitKey(delay)
         if key == 27:
             break
