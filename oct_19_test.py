@@ -1,5 +1,5 @@
 import cv2 as cv
-
+from time import strftime
 channel = 0
 webcam = cv.VideoCapture(0)
 
@@ -7,6 +7,9 @@ delay = 100
 lx, ly = 445, 340
 gain = 2
 
+
+now = strftime("%Y-%m-%HT%H:%M:%S")
+images_path = f"out/{now}"
 
 def make_600p():
     webcam.set(3, 800)
@@ -42,6 +45,9 @@ if webcam.isOpened():
     first_framebw = cv.cvtColor(first_frame, cv.COLOR_BGR2GRAY)
     num = 0
 
+    for i in range(150):
+        webcam.read()
+
     while val:
         val, rt_frame = webcam.read()
         rt_framebw = cv.cvtColor(rt_frame, cv.COLOR_BGR2GRAY)
@@ -53,11 +59,10 @@ if webcam.isOpened():
         diffsub = cv.multiply(diffsub, gain)
         diffsub_color = cv.applyColorMap(diffsub, cv.COLORMAP_JET)
         cv.imshow("Image Difference", diffsub_color)
+        cv.imwrite(f"{images_path}\diffsub_" + str(num) + "_color.png", diffsub_color)
         key = cv.waitKey(delay)
-        if key == 13:
-            cv.imwrite("im\\diffsub_" + str(num) + "_color.jpg", diffsub_color)
-            num += 1
         if key == 27:
             break
+        num += 1
     webcam.release()
     cv.destroyAllWindows()
